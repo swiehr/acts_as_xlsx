@@ -1,3 +1,13 @@
+
+Data for this modification repository
+
+[![Build Status](https://secure.travis-ci.org/swiehr/acts_as_xlsx.png)](http://travis-ci.org/swiehr/acts_as_xlsx/)
+
+**Git**:          [http://github.com/swiehr/acts_as_xlsx](http://github.com/swiehr/acts_as_xlsx)   
+
+Orginal README below
+====================================
+
 Acts as xlsx: Office Open XML Spreadsheet Generation plugin for active record
 ====================================
 [![Build Status](https://secure.travis-ci.org/randym/acts_as_xlsx.png)](http://travis-ci.org/randym/acts_as_xlsx/)
