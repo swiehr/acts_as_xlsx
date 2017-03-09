@@ -26,9 +26,17 @@ module Axlsx
       #       class MyModel < ActiveRecord::Base
       #          acts_as_xlsx :columns=> [:id, :created_at, :updated_at], :i18n => 'activerecord.attributes'
       def acts_as_xlsx(options={})
-        cattr_accessor :xlsx_i18n, :xlsx_columns
+        cattr_accessor :xlsx_i18n, :xlsx_columns, :xlsx_labels
         self.xlsx_i18n = options.delete(:i18n) || false
-        self.xlsx_columns = options.delete(:columns)
+        cols = options.delete(:columns)
+        if cols.is_a? Hash
+          self.xlsx_columns = cols.keys
+          self.xlsx_labels = cols.values
+        else
+          self.xlsx_columns = cols
+        end
+        self.xlsx_columns ||= self.column_names.map { |c| c = c.to_sym }
+        self.xlsx_labels ||= nil
         extend Axlsx::Ar::SingletonMethods
       end
     end
@@ -46,16 +54,21 @@ module Axlsx
       # @option options [Package] package An Axlsx::Package. When this is provided the output will be added to the package as a new sheet.  # @option options [String] name This will be used to name the worksheet added to the package. If it is not provided the name of the table name will be humanized when i18n is not specified or the I18n.t for the table name.
       # @see Worksheet#add_row
       def to_xlsx(options = {})
-        if self.xlsx_columns.nil?
-          self.xlsx_columns = self.column_names.map { |c| c = c.to_sym }
-        end
 
         row_style = options.delete(:style)
         header_style = options.delete(:header_style) || row_style
         types = [options.delete(:types) || []].flatten
 
         i18n = options.delete(:i18n) || self.xlsx_i18n
-        columns = options.delete(:columns) || self.xlsx_columns
+        cols = options.delete(:columns)
+        if cols.is_a? Hash
+          cls = cols.keys
+          lbls = cols.values
+        else
+          cls = cols
+        end
+        columns = cls || self.xlsx_columns
+        labels = lbls || self.xlsx_labels
 
         p = options.delete(:package) || Package.new
         row_style = p.workbook.styles.add_style(row_style) unless row_style.nil?
@@ -73,7 +86,9 @@ module Axlsx
         return p if data.empty?
         p.workbook.add_worksheet(:name=>sheet_name) do |sheet|
           
-          col_labels = if i18n
+          col_labels = if labels
+                         labels.map { |c| c.to_s }
+                       elsif i18n
                          columns.map { |c| I18n.t("#{i18n}.#{self.name.underscore}.#{c}") }                         
                        else
                          columns.map { |c| c.to_s.humanize }
@@ -84,6 +99,7 @@ module Axlsx
           data.each do |r|
             row_data = columns.map do |c|
               if c.to_s =~ /\./
+                #v = r; c.to_s.split('.').each { |method| v = v.send(method) }; v
                 v = r; c.to_s.split('.').each { |method| !v.nil? ? v = v.send(method) : v = ""; }; v
               else
                 r.send(c)                
